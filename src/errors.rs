@@ -13,3 +13,22 @@ impl std::fmt::Display for NotComputedError
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct InvalidOperationError {
+    reason: Option<&'static str>
+}
+
+impl InvalidOperationError {
+    pub fn new( reason: Option<&'static str> ) -> InvalidOperationError {
+        InvalidOperationError { reason }
+    }
+}
+
+impl Error for InvalidOperationError {}
+
+impl std::fmt::Display for InvalidOperationError
+{
+    fn fmt( &self, f: &mut std::fmt::Formatter ) -> std::fmt::Result {
+        write!( f, "Requested operation is invalid. Reason: {:?}.", self.reason )
+    }
+}

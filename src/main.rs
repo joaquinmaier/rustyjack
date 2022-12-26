@@ -44,8 +44,9 @@ fn main() {
     }
 
     // Step 2.2: Receive player input and act accordingly
-    // Would love a for-each but it conflicts with the printing of the hands
-    for i in 1..hands.len() {
+    // Ranges don't update with a push() to the Vec, so we have to use while
+    let mut i = 1;
+    while i < hands.len() {
         let mut done = false;
 
         while !done {
@@ -55,7 +56,7 @@ fn main() {
                 hands[ j as usize ].print();
             }
 
-            print!("\n: ");
+            print!("\nHand {}: ", i);
             // Make sure the character is displayed
             io::stdout().flush().unwrap();
 
@@ -78,9 +79,21 @@ fn main() {
                     if !hands[i].is_valid().unwrap() { done = true; }
 
                 },
+                4   => {
+                    // Split the hand
+                    match hands[i].split( Rc::downgrade( &deck ) ) {
+                        Ok( new_hand ) => {
+                            hands.push( new_hand );
+
+                        },
+                        Err(_) => ()            // We already know what the error is, and it is non-fatal, so ignore it
+                    }
+                },
                 _   => ()
             }
         }
+
+        i += 1;
     }
 
     hands[0].reveal( Rc::downgrade( &deck ) );
@@ -92,16 +105,23 @@ fn main() {
         hands[ j as usize ].print();
     }
 
-    let winner = determine_winner( &hands );
-    if winner == 1 {
-        green_ln!( "\nYOU WIN!" );
+    let winners = determine_winners( &hands );
 
-    } else if winner == 0 {
-        red_ln!( "\nYOU LOSE" );
+    if winners.len() == 0 {
+        panic!( "No winners/losers were determined!" );
+    }
 
-    } else {
-        // * THIS IS A BAND-AID. BLAH-BLAH-BLAH.
-        cyan_ln!( "\nPUSH ;)" );
-
+    for winner in winners.iter() {
+        match winner.result {
+            GameResultType::WIN => {
+                green_ln!( "Hand {} WINS", winner.player_id );
+            },
+            GameResultType::PUSH => {
+                cyan_ln!( "Hand {} PUSH", winner.player_id );
+            },
+            GameResultType::LOSE => {
+                red_ln!( "Hand {} LOSES", winner.player_id );
+            }
+        }
     }
 }

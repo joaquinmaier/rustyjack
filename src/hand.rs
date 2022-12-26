@@ -1,11 +1,12 @@
 use crate::card::{ Card, components };
 use crate::deck::Deck;
 use colour::*;
-use std::error::Error;
 use std::rc::{ Rc, Weak };
 use std::cell::RefCell;
-use crate::errors::NotComputedError;
+use crate::errors::{ NotComputedError, InvalidOperationError };
+use crate::card::components::CardValue;
 
+#[derive(Clone)]
 pub struct Hand
 {
     pub cards: Vec<Card>,
@@ -23,6 +24,20 @@ impl Hand
         let cards = [ deck_mut.take_card(), deck_mut.take_card() ];
 
         Hand { cards: Vec::from( cards ), sum_value: None, locked: false, auto_lock: false, hidden: croupier }
+    }
+
+    pub fn new_using( existing_card: Card, deck: Weak<RefCell<Deck>> ) -> Hand {
+        match deck.upgrade() {
+            Some( deck ) => {
+                let mut deck_mut = deck.borrow_mut();
+
+                let cards = [ existing_card, deck_mut.take_card() ];
+
+                Hand { cards: Vec::from( cards ), sum_value: None, locked: false, auto_lock: false, hidden: false }
+
+            },
+            None => { panic!( "Required deck has been dropped unexpectedly" ); }
+        }
     }
 
     pub fn print( &self ) {
@@ -134,7 +149,7 @@ impl Hand
         }
     }
 
-    pub fn is_valid( &self ) -> Result<bool, Box<dyn Error>> {
+    pub fn is_valid( &self ) -> Result<bool, Box<NotComputedError>> {
         if let components::SumType::SingleValue( sum ) = self.sum_value.clone().unwrap() {
             return Ok( sum <= 21 );
 
@@ -188,6 +203,34 @@ impl Hand
 
     pub fn stand( &mut self ) {
         self.locked = true;
+    }
+
+    pub fn split( &mut self, deck: Weak<RefCell<Deck>> ) -> Result<Hand, Box<InvalidOperationError>> {
+        // Cannot split with more than 2 cards
+        if self.cards.len() > 2     { return Err( Box::new( InvalidOperationError::new( Some( "Hand has more than 3 cards" ) ) ) ); }
+
+        // Cannot split if both cards are not of the same value
+        if CardValue::to_int( &self.cards[0].value ) != CardValue::to_int( &self.cards[1].value )     { return Err( Box::new( InvalidOperationError::new( Some( "Hand's cards are not of equal value" ) ) ) ); }
+
+        let splitting_card = self.cards.pop().unwrap();
+
+        let mut new_hand = Hand::new_using( splitting_card, Weak::clone( &deck ) );
+
+        match deck.upgrade() {
+            Some( deck_upg ) => {
+                let mut deck_mut = deck_upg.borrow_mut();
+
+                self.cards.push( deck_mut.take_card() );
+
+
+            },
+            None => { panic!( "Required Deck has been dropped unexpectedly" ); }
+        }
+
+        self.calc_sum();
+        new_hand.calc_sum();
+
+        Ok( new_hand )
     }
 }
 
