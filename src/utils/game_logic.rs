@@ -1,9 +1,13 @@
 use crate::hand::Hand;
 use crate::card::components::SumType;
+use crate::Deck;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 pub enum GameResultType
 {
     WIN,
+    WINBJ,
     PUSH,
     LOSE
 }
@@ -72,9 +76,11 @@ pub fn determine_winners( hands: &Vec<Hand> ) -> Vec<GameResult> {
 
                         }
 
-                        if n > c_h          { results.push( GameResult::new( index, GameResultType::WIN ) ); }
-                        else if n == c_h    { results.push( GameResult::new( index, GameResultType::PUSH ) ); }
-                        else                { results.push( GameResult::new( index, GameResultType::LOSE ) ); }
+                        if hand.is_blackjack()  { results.push( GameResult::new( index, GameResultType::WINBJ ) ); }
+
+                        if n > c_h              { results.push( GameResult::new( index, GameResultType::WIN ) ); }
+                        else if n == c_h        { results.push( GameResult::new( index, GameResultType::PUSH ) ); }
+                        else                    { results.push( GameResult::new( index, GameResultType::LOSE ) ); }
 
                     },
                     SumType::MultipleValue( c_h1, c_h2 ) => {
@@ -83,6 +89,8 @@ pub fn determine_winners( hands: &Vec<Hand> ) -> Vec<GameResult> {
                             continue;
 
                         }
+
+                        if hand.is_blackjack()  { results.push( GameResult::new( index, GameResultType::WINBJ ) ); }
 
                         if n > c_h2 && n > c_h1 { results.push( GameResult::new( index, GameResultType::WIN ) ); }
                         else if n == c_h2       { results.push( GameResult::new( index, GameResultType::PUSH ) ); }
@@ -100,6 +108,8 @@ pub fn determine_winners( hands: &Vec<Hand> ) -> Vec<GameResult> {
 
                         }
 
+                        if hand.is_blackjack()  { results.push( GameResult::new( index, GameResultType::WINBJ ) ); }
+
                         if n1 > c_h || n2 > c_h { results.push( GameResult::new( index, GameResultType::WIN ) ); }
                         else if n2 == c_h       { results.push( GameResult::new( index, GameResultType::PUSH ) ); }
                         else                    { results.push( GameResult::new( index, GameResultType::LOSE ) ); }
@@ -111,9 +121,11 @@ pub fn determine_winners( hands: &Vec<Hand> ) -> Vec<GameResult> {
 
                         }
 
+                        if hand.is_blackjack()  { results.push( GameResult::new( index, GameResultType::WINBJ ) ); }
+
                         if ( n1 > c_h1 && n1 > c_h2 ) || ( n2 > c_h1 && n2 > c_h2 ) { results.push( GameResult::new( index, GameResultType::WIN ) ); }
-                        else if n2 == c_h2  { results.push( GameResult::new( index, GameResultType::PUSH ) ); }
-                        else                { results.push( GameResult::new( index, GameResultType::LOSE ) ); }
+                        else if n2 == c_h2      { results.push( GameResult::new( index, GameResultType::PUSH ) ); }
+                        else                    { results.push( GameResult::new( index, GameResultType::LOSE ) ); }
                     }
                 }
             },
@@ -122,4 +134,11 @@ pub fn determine_winners( hands: &Vec<Hand> ) -> Vec<GameResult> {
     }
 
     results
+}
+
+// This function only exists because calling borrow_mut() in main MIGHT cause problems
+pub fn shuffle_deck( deck: Rc<RefCell<Deck>> ) {
+    let mut deck_mut = deck.borrow_mut();
+
+    deck_mut.shuffle();
 }

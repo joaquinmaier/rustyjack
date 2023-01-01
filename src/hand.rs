@@ -4,7 +4,7 @@ use colour::*;
 use std::rc::{ Rc, Weak };
 use std::cell::RefCell;
 use crate::errors::{ NotComputedError, InvalidOperationError };
-use crate::card::components::CardValue;
+use crate::card::components::{ CardValue, SumType };
 
 #[derive(Clone)]
 pub struct Hand
@@ -13,6 +13,7 @@ pub struct Hand
     pub sum_value: Option<components::SumType>,
     pub locked: bool,
         auto_lock: bool,
+        croupier: bool,
     pub hidden: bool
 }
 
@@ -23,7 +24,7 @@ impl Hand
 
         let cards = [ deck_mut.take_card(), deck_mut.take_card() ];
 
-        Hand { cards: Vec::from( cards ), sum_value: None, locked: false, auto_lock: false, hidden: croupier }
+        Hand { cards: Vec::from( cards ), sum_value: None, locked: false, auto_lock: false, croupier, hidden: croupier }
     }
 
     pub fn new_using( existing_card: Card, deck: Weak<RefCell<Deck>> ) -> Hand {
@@ -33,7 +34,7 @@ impl Hand
 
                 let cards = [ existing_card, deck_mut.take_card() ];
 
-                Hand { cards: Vec::from( cards ), sum_value: None, locked: false, auto_lock: false, hidden: false }
+                Hand { cards: Vec::from( cards ), sum_value: None, locked: false, auto_lock: false, croupier: false, hidden: false }
 
             },
             None => { panic!( "Required deck has been dropped unexpectedly" ); }
@@ -59,6 +60,10 @@ impl Hand
                 components::SumType::MultipleValue( n1, n2 ) => {
                     yellow!( "\t({}/{})", n1, n2 );
                 },
+            }
+
+            if self.is_splittable() && !self.croupier {
+                yellow!( " [S]" );
             }
 
         } else {
@@ -231,6 +236,26 @@ impl Hand
         new_hand.calc_sum();
 
         Ok( new_hand )
+    }
+
+    pub fn is_splittable( &self ) -> bool {
+        if self.cards.len() > 2                                                                     { return false; }
+
+        if CardValue::to_int( &self.cards[0].value ) != CardValue::to_int( &self.cards[1].value )   { return false; }
+
+        return true;
+    }
+
+    pub fn is_blackjack( &self ) -> bool {
+        if self.cards.len() == 2 {
+            return match self.sum_value.clone().unwrap() {
+                SumType::SingleValue( n ) if n == 21                        => true,
+                SumType::MultipleValue( n1, n2 ) if n2 == 21 || n1 == 21    => true,
+                _                                                           => false
+            }
+        }
+
+        return false;
     }
 }
 
