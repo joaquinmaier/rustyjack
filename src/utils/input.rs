@@ -6,6 +6,7 @@ pub fn handle_input( input: &String ) -> u8 {
         's' => 2,
         'h' => 3,
         'S' => 4,
+        'd' => 5,
         _ => 0
     }
 }

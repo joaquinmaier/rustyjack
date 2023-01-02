@@ -3,36 +3,43 @@ use std::io::{ self, Write };
 use std::rc::Rc;
 use std::cell::RefCell;
 
+extern crate termsize;
+
 pub mod card;
 pub mod deck;
 pub mod hand;
 pub mod errors;
 pub mod utils;
+pub mod ui;
+pub mod wallet;
 use crate::deck::Deck;
 use crate::hand::Hand;
 use crate::utils::input::*;
 use crate::utils::game_logic::*;
+use crate::ui::*;
+use crate::wallet::Wallet;
 
 const PLAYERS: u32 = 2;
 
-macro_rules! clr {
-    () => {
-        print!("\x1B[2J\x1B[1;1H");
-    }
-}
+// TODO: Splits create problems because it is trying to give rewards multiple times, because it doesn't put more money in.
+// TODO: Doubling and pushing may create money out of thin air?
 
 fn main() {
     // ? Step 1: Init
+    let terminal_size           = termsize::get().map( |size| { TerminalResolution::new( size.rows, size.cols ); } ).unwrap();
+
     let deck                    = Rc::new( RefCell::new( Deck::new() ) );   // Deck of cards
     let mut input_buffer        = String::new();                            // For receiving input from the user (reusable)
     let mut hands: Vec<Hand>    = Vec::new();
 
     let mut playing             = true;
-    let mut money: i64          = 50;
+    let mut player_wallet       = Wallet::new( 10 );
 
     // ? Step 2: Gameplay loop
     // Step 2.1: Initialize hands
-    while playing && money > 0 {
+    while playing && player_wallet.money > 0. {
+        player_wallet.bet( 10 as f64 ).unwrap();
+
         shuffle_deck( Rc::clone( &deck ) );
         hands.clear();
 
@@ -94,6 +101,26 @@ fn main() {
                             Err(_) => ()            // We already know what the error is, and it is non-fatal, so ignore it
                         }
                     },
+                    5   => {
+                        // Double the hand
+                        let wallet_result = player_wallet.double_bet();
+
+                        if wallet_result.is_err() {
+                            if let Some(_) = wallet_result.unwrap_err().downcast_ref::<errors::NotEnoughMoneyError>() {
+                                dark_red_ln!( "You do not have enough money to double" );
+
+                            }
+                            else {
+                                // Don't have to check, is the only other error that can appear
+                                panic!( "Attempted to double a non-existent bet" );
+
+                            }
+                        }
+                        else {
+                            hands[i].double( Rc::downgrade( &deck ) ).unwrap();
+                        }
+
+                    },
                     _   => ()
                 }
             }
@@ -120,23 +147,32 @@ fn main() {
             match winner.result {
                 GameResultType::WIN => {
                     green_ln!( "\nHand {} WINS", winner.player_id );
+                    player_wallet.give_win_reward().unwrap();
                 },
                 GameResultType::WINBJ => {
                     yellow_ln!( "\nHand {} WINS WITH BLACKJACK", winner.player_id );
+                    player_wallet.give_win_reward_bj().unwrap();
                 },
                 GameResultType::PUSH => {
                     cyan_ln!( "\nHand {} PUSH", winner.player_id );
+                    player_wallet.push_bet().unwrap();
                 },
                 GameResultType::LOSE => {
                     red_ln!( "\nHand {} LOSES", winner.player_id );
+                    player_wallet.take_bet().unwrap();
                 }
             }
         }
 
+        green_ln!( "$$ Total Money: {} $$", player_wallet.money );
         println!("\nPress any key to continue...");
         io::stdout().flush().unwrap();
         io::stdin().read_line( &mut input_buffer ).unwrap();
 
+    }
+
+    if playing {
+        red_ln!( "\nGAME OVER" );
     }
 
 }

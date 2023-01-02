@@ -9,5 +9,6 @@ edition = "2021"
 colour = "0.6.0"
 rand = "0.8.5"
 num = "0.4.0"
+termsize = "0.1.6"
 
 # ♥ ♣ ♦ ♠

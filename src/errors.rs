@@ -32,3 +32,27 @@ impl std::fmt::Display for InvalidOperationError
         write!( f, "Requested operation is invalid. Reason: {:?}.", self.reason )
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct NotEnoughMoneyError;
+
+impl Error for NotEnoughMoneyError {}
+
+impl std::fmt::Display for NotEnoughMoneyError
+{
+    fn fmt( &self, f: &mut std::fmt::Formatter ) -> std::fmt::Result {
+        write!( f, "Not enough money in wallet" )
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NonExistentBetError;
+
+impl Error for NonExistentBetError {}
+
+impl std::fmt::Display for NonExistentBetError
+{
+    fn fmt( &self, f: &mut std::fmt::Formatter ) -> std::fmt::Result {
+        write!( f, "Attempted to access bet parameter, of value None" )
+    }
+}

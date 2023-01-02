@@ -238,6 +238,16 @@ impl Hand
         Ok( new_hand )
     }
 
+    pub fn double( &mut self, deck: Weak<RefCell<Deck>> ) -> Result<(), Box<InvalidOperationError>> {
+        if self.locked          { return Err( Box::new( InvalidOperationError::new( Some( "Cannot hit hand because it is locked" ) ) ) ); }
+
+        self.hit_weak( Weak::clone( &deck ) );
+
+        self.locked = true;
+
+        Ok(())
+    }
+
     pub fn is_splittable( &self ) -> bool {
         if self.cards.len() > 2                                                                     { return false; }
 
