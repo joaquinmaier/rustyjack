@@ -16,7 +16,7 @@ use crate::deck::Deck;
 use crate::hand::Hand;
 use crate::utils::input::*;
 use crate::utils::game_logic::*;
-use crate::ui::*;
+use crate::ui::TerminalResolution;
 use crate::wallet::Wallet;
 
 const PLAYERS: u32 = 2;
@@ -24,7 +24,8 @@ const BET: i32 = 10;
 
 fn main() {
     // ? Step 1: Init
-    let terminal_size           = termsize::get().map( |size| { TerminalResolution::new( size.rows, size.cols ); } ).unwrap();
+    // I hate this line right here
+    let terminal_size = TerminalResolution::new( termsize::get().unwrap().rows, termsize::get().unwrap().cols );
 
     let deck                    = Rc::new( RefCell::new( Deck::new() ) );   // Deck of cards
     let mut input_buffer        = String::new();                            // For receiving input from the user (reusable)
