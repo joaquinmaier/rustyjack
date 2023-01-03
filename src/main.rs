@@ -20,9 +20,7 @@ use crate::ui::*;
 use crate::wallet::Wallet;
 
 const PLAYERS: u32 = 2;
-
-// TODO: Splits create problems because it is trying to give rewards multiple times, because it doesn't put more money in.
-// TODO: Doubling and pushing may create money out of thin air?
+const BET: i32 = 10;
 
 fn main() {
     // ? Step 1: Init
@@ -33,12 +31,12 @@ fn main() {
     let mut hands: Vec<Hand>    = Vec::new();
 
     let mut playing             = true;
-    let mut player_wallet       = Wallet::new( 10 );
+    let mut player_wallet       = Wallet::new( BET * 2 );
 
     // ? Step 2: Gameplay loop
     // Step 2.1: Initialize hands
     while playing && player_wallet.money > 0. {
-        player_wallet.bet( 10 as f64 ).unwrap();
+        player_wallet.bet( BET as f64 ).unwrap();
 
         shuffle_deck( Rc::clone( &deck ) );
         hands.clear();
@@ -88,17 +86,20 @@ fn main() {
                         // Hit the hand, and if it's gone overboard, move on to the next person
                         hands[i].hit( Rc::clone( &deck ) );
 
-                        if !hands[i].is_valid().unwrap() { done = true; }
+                        if !hands[i].is_valid().unwrap()    { done = true; }
 
                     },
                     4   => {
                         // Split the hand
-                        match hands[i].split( Rc::downgrade( &deck ) ) {
-                            Ok( new_hand ) => {
-                                hands.push( new_hand );
+                        if player_wallet.bet( BET as f64 ).is_ok() {
 
-                            },
-                            Err(_) => ()            // We already know what the error is, and it is non-fatal, so ignore it
+                            match hands[i].split( Rc::downgrade( &deck ) ) {
+                                Ok( new_hand ) => {
+                                    hands.push( new_hand );
+
+                                },
+                                Err(_) => ()            // We already know what the error is, and it is non-fatal, so ignore it
+                            }
                         }
                     },
                     5   => {
@@ -119,6 +120,8 @@ fn main() {
                         else {
                             hands[i].double( Rc::downgrade( &deck ) ).unwrap();
                         }
+
+                        if !hands[i].is_valid().unwrap()    { done = true; }
 
                     },
                     _   => ()
@@ -164,7 +167,7 @@ fn main() {
             }
         }
 
-        green_ln!( "$$ Total Money: {} $$", player_wallet.money );
+        green_ln!( "\n$$ Total Money: {} $$", player_wallet.money );
         println!("\nPress any key to continue...");
         io::stdout().flush().unwrap();
         io::stdin().read_line( &mut input_buffer ).unwrap();

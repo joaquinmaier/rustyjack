@@ -1,72 +1,79 @@
 use std::error::Error;
+use std::collections::VecDeque;
 use crate::errors::{ NotEnoughMoneyError, NonExistentBetError };
 
 pub struct Wallet {
     pub money: f64,
-        bet: Option<f64>
+        bets: Option<VecDeque<f64>>
 }
 
 impl Wallet
 {
     pub fn new( initial_money: i32 ) -> Wallet {
-        Wallet { money: initial_money as f64, bet: None }
+        Wallet { money: initial_money as f64, bets: None }
     }
 
     pub fn bet( &mut self, amount: f64 ) -> Result<(), Box<NotEnoughMoneyError>>{
-        if amount > self.money { return Err( Box::new( NotEnoughMoneyError ) ); }
+        if amount > self.money              { return Err( Box::new( NotEnoughMoneyError ) ); }
 
         self.money -= amount;
-        self.bet = Some(amount);
+
+        if self.bets == None {
+            let mut temp_vec = VecDeque::new();
+            temp_vec.push_back( amount );
+
+            self.bets = Some( temp_vec );
+
+        } else {
+            self.bets.as_mut().unwrap().push_back( amount );
+
+        }
 
         Ok(())
     }
 
     pub fn give_win_reward( &mut self ) -> Result<(), Box<NonExistentBetError>> {
-        if self.bet == None              { return Err( Box::new( NonExistentBetError ) ); }
+        if self.bets == None                { return Err( Box::new( NonExistentBetError ) ); }
 
-        self.money += 2.0 * self.bet.unwrap();
-        self.bet = None;
+        self.money += 2.0 * self.bets.as_mut().unwrap().pop_front().unwrap();
 
         Ok(())
     }
 
     pub fn take_bet( &mut self ) -> Result<(), Box<NonExistentBetError>> {
-        if self.bet == None              { return Err( Box::new( NonExistentBetError ) ); }
+        if self.bets == None                { return Err( Box::new( NonExistentBetError ) ); }
 
-        self.bet = None;
+        self.bets.as_mut().unwrap().pop_front();
 
         Ok(())
     }
 
     pub fn give_win_reward_bj( &mut self ) -> Result<(), Box<NonExistentBetError>> {
-        if self.bet == None              { return Err( Box::new( NonExistentBetError ) ); }
+        if self.bets == None                { return Err( Box::new( NonExistentBetError ) ); }
 
-        self.money += 2.5 * self.bet.unwrap();
-        self.bet = None;
+        self.money += 2.5 * self.bets.as_mut().unwrap().pop_front().unwrap();
 
         Ok(())
     }
 
     pub fn push_bet( &mut self ) -> Result<(), Box<NonExistentBetError>> {
-        if self.bet == None             { return Err( Box::new( NonExistentBetError ) ); }
+        if self.bets == None                { return Err( Box::new( NonExistentBetError ) ); }
 
-        self.money += self.bet.unwrap();
-        self.bet = None;
+        self.money += self.bets.as_mut().unwrap().pop_front().unwrap();
 
         Ok(())
     }
 
     pub fn double_bet( &mut self ) -> Result<(), Box<dyn Error>> {
-        if self.bet == None             { return Err( Box::new( NonExistentBetError ) ); }
+        if self.bets == None                { return Err( Box::new( NonExistentBetError ) ); }
 
-        let temp    = self.bet.unwrap();
+        let temp    = self.bets.as_mut().unwrap().pop_back().unwrap();
 
         if self.money - temp <= 0.      { return Err( Box::new( NotEnoughMoneyError ) ); }
 
         self.money  -= temp;
-        self.bet    = Some( temp + temp );
+        self.bets.as_mut().unwrap().push_back( temp + temp );
 
         Ok(())
     }
-
 }

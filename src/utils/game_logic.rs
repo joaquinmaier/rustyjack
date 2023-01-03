@@ -37,13 +37,13 @@ pub fn determine_winners( hands: &Vec<Hand> ) -> Vec<GameResult> {
             {
                 match croupier_hand {
                     SumType::SingleValue( c_h ) => {
+                        if hand.is_blackjack()  { results.push( GameResult::new( index, GameResultType::WINBJ ) ); continue; }
+
                         if c_h > 21 {
                             results.push( GameResult::new( index, GameResultType::WIN ) );
                             continue;
 
                         }
-
-                        if hand.is_blackjack()  { results.push( GameResult::new( index, GameResultType::WINBJ ) ); continue; }
 
                         if n > c_h              { results.push( GameResult::new( index, GameResultType::WIN ) ); }
                         else if n == c_h        { results.push( GameResult::new( index, GameResultType::PUSH ) ); }
@@ -51,13 +51,13 @@ pub fn determine_winners( hands: &Vec<Hand> ) -> Vec<GameResult> {
 
                     },
                     SumType::MultipleValue( c_h1, c_h2 ) => {
+                        if hand.is_blackjack()  { results.push( GameResult::new( index, GameResultType::WINBJ ) ); continue; }
+
                         if c_h1 > 21 {
                             results.push( GameResult::new( index, GameResultType::WIN ) );
                             continue;
 
                         }
-
-                        if hand.is_blackjack()  { results.push( GameResult::new( index, GameResultType::WINBJ ) ); continue; }
 
                         if n > c_h2 && n > c_h1 { results.push( GameResult::new( index, GameResultType::WIN ) ); }
                         else if n == c_h2       { results.push( GameResult::new( index, GameResultType::PUSH ) ); }
@@ -69,26 +69,26 @@ pub fn determine_winners( hands: &Vec<Hand> ) -> Vec<GameResult> {
             {
                 match croupier_hand {
                     SumType::SingleValue( c_h ) => {
+                        if hand.is_blackjack()  { results.push( GameResult::new( index, GameResultType::WINBJ ) ); continue; }
+
                         if c_h > 21 {
                             results.push( GameResult::new( index, GameResultType::WIN ) );
                             continue;
 
                         }
 
-                        if hand.is_blackjack()  { results.push( GameResult::new( index, GameResultType::WINBJ ) ); continue; }
-
                         if n1 > c_h || n2 > c_h { results.push( GameResult::new( index, GameResultType::WIN ) ); }
                         else if n2 == c_h       { results.push( GameResult::new( index, GameResultType::PUSH ) ); }
                         else                    { results.push( GameResult::new( index, GameResultType::LOSE ) ); }
                     },
                     SumType::MultipleValue( c_h1, c_h2 ) => {
+                        if hand.is_blackjack()  { results.push( GameResult::new( index, GameResultType::WINBJ ) ); continue; }
+
                         if c_h1 > 21 {
                             results.push( GameResult::new( index, GameResultType::WIN ) );
                             continue;
 
                         }
-
-                        if hand.is_blackjack()  { results.push( GameResult::new( index, GameResultType::WINBJ ) ); continue; }
 
                         if ( n1 > c_h1 && n1 > c_h2 ) || ( n2 > c_h1 && n2 > c_h2 ) { results.push( GameResult::new( index, GameResultType::WIN ) ); }
                         else if n2 == c_h2      { results.push( GameResult::new( index, GameResultType::PUSH ) ); }
