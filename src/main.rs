@@ -25,7 +25,7 @@ const BET: i32 = 10;
 fn main() {
     // ? Step 1: Init
     // I hate this line right here
-    let terminal_size = TerminalResolution::new( termsize::get().unwrap().rows, termsize::get().unwrap().cols );
+    let _terminal_size           = TerminalResolution::new( termsize::get().unwrap().rows, termsize::get().unwrap().cols );
 
     let deck                    = Rc::new( RefCell::new( Deck::new() ) );   // Deck of cards
     let mut input_buffer        = String::new();                            // For receiving input from the user (reusable)
@@ -36,7 +36,7 @@ fn main() {
 
     // ? Step 2: Gameplay loop
     // Step 2.1: Initialize hands
-    while playing && player_wallet.money > 0. {
+    while playing && player_wallet.can_pay( BET as f64 ) {
         player_wallet.bet( BET as f64 ).unwrap();
 
         shuffle_deck( Rc::clone( &deck ) );
@@ -56,16 +56,24 @@ fn main() {
 
         // Step 2.2: Receive player input and act accordingly
         // Ranges don't update with a push() to the Vec, so we have to use while
+
+        let mut can_play = true;
+        if hands[0].should_present_insurance() {
+            can_play = insurance_round( &mut hands, &mut player_wallet );
+        }
+
         let mut i = 1;
-        while i < hands.len() {
+        while i < hands.len() && can_play {
             let mut done = false;
 
             while !done {
                 clr!();
 
                 for j in 0..hands.len() {
-                    hands[ j as usize ].print();
+                    hands[ j ].print();
                 }
+
+                player_wallet.print_info();
 
                 print!("\nHand {}: ", i);
                 // Make sure the characters are displayed
@@ -169,7 +177,7 @@ fn main() {
         }
 
         green_ln!( "\n$$ Total Money: {} $$", player_wallet.money );
-        println!("\nPress any key to continue...");
+        println!("\nPress ENTER to continue...");
         io::stdout().flush().unwrap();
         io::stdin().read_line( &mut input_buffer ).unwrap();
 

@@ -14,6 +14,8 @@ pub struct Hand
     pub locked: bool,
         auto_lock: bool,
         croupier: bool,
+    pub insured: bool,
+        insurance_prompted: bool,
     pub hidden: bool
 }
 
@@ -24,7 +26,7 @@ impl Hand
 
         let cards = [ deck_mut.take_card(), deck_mut.take_card() ];
 
-        Hand { cards: Vec::from( cards ), sum_value: None, locked: false, auto_lock: false, croupier, hidden: croupier }
+        Hand { cards: Vec::from( cards ), sum_value: None, locked: false, auto_lock: false, croupier, insured: false, insurance_prompted: false, hidden: croupier }
     }
 
     pub fn new_using( existing_card: Card, deck: Weak<RefCell<Deck>> ) -> Hand {
@@ -34,11 +36,15 @@ impl Hand
 
                 let cards = [ existing_card, deck_mut.take_card() ];
 
-                Hand { cards: Vec::from( cards ), sum_value: None, locked: false, auto_lock: false, croupier: false, hidden: false }
+                Hand { cards: Vec::from( cards ), sum_value: None, locked: false, auto_lock: false, croupier: false, insured: false, insurance_prompted: false, hidden: false }
 
             },
             None => { panic!( "Required deck has been dropped unexpectedly" ); }
         }
+    }
+
+    pub fn from( cards: Vec<Card>, sum_value: Option<components::SumType>, locked: bool, auto_lock: bool, croupier: bool, insured: bool, insurance_prompted: bool, hidden: bool ) -> Hand {
+        Hand { cards, sum_value, locked, auto_lock, croupier, insured, insurance_prompted, hidden }
     }
 
     pub fn print( &self ) {
@@ -263,6 +269,14 @@ impl Hand
                 SumType::MultipleValue( n1, n2 ) if n2 == 21 || n1 == 21    => true,
                 _                                                           => false
             }
+        }
+
+        return false;
+    }
+
+    pub fn should_present_insurance( &self ) -> bool {
+        if self.cards[0].value == CardValue::ACE && !self.insurance_prompted {
+            return true;
         }
 
         return false;

@@ -1,6 +1,7 @@
+use colour::*;
 use std::error::Error;
 use std::collections::VecDeque;
-use crate::errors::{ NotEnoughMoneyError, NonExistentBetError };
+use crate::errors::{ NotEnoughMoneyError, NonExistentBetError, InvalidStateError };
 
 pub struct Wallet {
     pub money: f64,
@@ -69,11 +70,46 @@ impl Wallet
 
         let temp    = self.bets.as_mut().unwrap().pop_back().unwrap();
 
-        if self.money - temp <= 0.      { return Err( Box::new( NotEnoughMoneyError ) ); }
+        if self.money - temp < 0. {
+            self.bets.as_mut().unwrap().push_back( temp );
+            return Err( Box::new( NotEnoughMoneyError ) );
+        }
 
         self.money  -= temp;
         self.bets.as_mut().unwrap().push_back( temp + temp );
 
         Ok(())
+    }
+
+    pub fn print_info( &self ) {
+        dark_grey_ln!( "Current bets: {:?}\nYour money: {}", self.bets.clone().unwrap(), self.money );
+    }
+
+    pub fn pay_insurance( &mut self ) -> Result<(), Box<dyn Error>> {
+        if self.bets == None                { return Err( Box::new( NonExistentBetError ) ); }
+
+        // Cannot split before prompting insurance
+        if self.bets.as_ref().unwrap().len() > 1     { return Err( Box::new( InvalidStateError ) ); }
+
+        let insurance_cost  = self.bets.as_ref().unwrap()[0] * 0.5;
+
+        if self.money - insurance_cost < 0. { return Err( Box::new( NotEnoughMoneyError ) ); }
+
+        self.money  -= insurance_cost;
+
+        Ok(())
+    }
+
+    pub fn return_insurance( &mut self ) -> Result<(), Box<NonExistentBetError>> {
+        if self.bets == None                { return Err( Box::new( NonExistentBetError ) ); }
+
+        // Add the original bet + the cost of the insurance, so you lose nothing
+        self.money += self.bets.as_ref().unwrap()[0] + self.bets.as_ref().unwrap()[0] * 0.5;
+
+        Ok( () )
+    }
+
+    pub fn can_pay( &self, cost: f64 ) -> bool {
+        return self.money >= cost;
     }
 }

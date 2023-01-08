@@ -11,4 +11,13 @@ pub fn handle_input( input: &String ) -> u8 {
     }
 }
 
+pub fn wants_to_insure( input: &String ) -> Option<bool> {
+    let chars: Vec<char> = String::as_str( input ).chars().into_iter().collect();
+
+    return match chars[0] {
+        'y' | 'Y' | 'i' | 'I'   => Some(true),
+        'n' | 'N'               => Some(false),
+        _                       => None
+    }
+}
 

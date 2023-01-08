@@ -56,3 +56,16 @@ impl std::fmt::Display for NonExistentBetError
         write!( f, "Attempted to access bet parameter, of value None" )
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct InvalidStateError;
+
+impl Error for InvalidStateError {}
+
+impl std::fmt::Display for InvalidStateError
+{
+    fn fmt( &self, f: &mut std::fmt::Formatter ) -> std::fmt::Result {
+        write!( f, "Wallet state is invalid" )
+    }
+}
+
