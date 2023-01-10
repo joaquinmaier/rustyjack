@@ -3,7 +3,7 @@ use crate::card::components::SumType;
 use crate::Deck;
 use crate::wallet::Wallet;
 use crate::utils::input::wants_to_insure;
-use crate::notifications::NotificationBuffer;
+use crate::notifications::{ Notification, NotificationType, NotificationBuffer };
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::io::{ self, Write };
@@ -162,7 +162,7 @@ pub fn insurance_round( hands: &mut Vec<Hand>, wallet: &mut Wallet, notification
                             panic!( "Hand is illegal state" );
 
                         } else if let Some(_) = e.as_ref().downcast_ref::<crate::errors::NotEnoughMoneyError>() {
-                            println!("Not enough money to insure");
+                            notifications.add( Notification::new( NotificationType::INFO, String::from( "Not enough money to insure" ) ) );
 
                         }
                     }

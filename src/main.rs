@@ -25,6 +25,8 @@ use crate::notifications::{ NotificationBuffer, Notification, NotificationType }
 const PLAYERS: u32 = 2;
 const BET: i32 = 10;
 
+// TODO: If both the croupier and the player have blackjack, the game panics, fix that.
+
 fn main() {
     // ? Step 1: Init
     // I hate this line right here
@@ -88,7 +90,6 @@ fn main() {
 
                 input_buffer.clear();
 
-                // TODO: This error doesn't have to be fatal? Look into that.
                 io::stdin().read_line( &mut input_buffer ).unwrap();
 
                 match handle_input( &input_buffer ) {
