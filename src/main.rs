@@ -12,12 +12,15 @@ pub mod errors;
 pub mod utils;
 pub mod ui;
 pub mod wallet;
+pub mod notifications;
+
 use crate::deck::Deck;
 use crate::hand::Hand;
 use crate::utils::input::*;
 use crate::utils::game_logic::*;
 use crate::ui::TerminalResolution;
 use crate::wallet::Wallet;
+use crate::notifications::{ NotificationBuffer, Notification, NotificationType };
 
 const PLAYERS: u32 = 2;
 const BET: i32 = 10;
@@ -33,6 +36,8 @@ fn main() {
 
     let mut playing             = true;
     let mut player_wallet       = Wallet::new( BET * 2 );
+
+    let mut notifications       = NotificationBuffer::new();
 
     // ? Step 2: Gameplay loop
     // Step 2.1: Initialize hands
@@ -59,7 +64,7 @@ fn main() {
 
         let mut can_play = true;
         if hands[0].should_present_insurance() {
-            can_play = insurance_round( &mut hands, &mut player_wallet );
+            can_play = insurance_round( &mut hands, &mut player_wallet, &mut notifications );
         }
 
         let mut i = 1;
@@ -74,6 +79,8 @@ fn main() {
                 }
 
                 player_wallet.print_info();
+
+                notifications.print_all();
 
                 print!("\nHand {}: ", i);
                 // Make sure the characters are displayed
@@ -100,24 +107,36 @@ fn main() {
                     },
                     4   => {
                         // Split the hand
-                        if player_wallet.bet( BET as f64 ).is_ok() {
-
+                        if hands[i].can_split() && player_wallet.bet( BET as f64 ).is_ok() {
                             match hands[i].split( Rc::downgrade( &deck ) ) {
-                                Ok( new_hand ) => {
+                                Ok( new_hand )  => {
                                     hands.push( new_hand );
 
                                 },
-                                Err(_) => ()            // We already know what the error is, and it is non-fatal, so ignore it
+                                Err(_)          => ()           // Errors cannot happen since we checked beforehand if the player could
+                            }
+
+                        } else {
+                            match hands[i].split( Rc::downgrade( &deck ) ) {
+                                Err( e )        => {
+                                    notifications.add( Notification::new( NotificationType::ERROR, String::from( e.reason.unwrap() ) ) );
+                                },
+                                Ok( _ )         => { panic!( "hand.split() returned Ok() when Err() was expected" ); }
                             }
                         }
                     },
                     5   => {
                         // Double the hand
+                        if hands[i].cards.len() > 2 {
+                            notifications.add( Notification::new( NotificationType::INFO, String::from( "You cannot double after hitting" ) ) );
+                            continue;
+                        }
+
                         let wallet_result = player_wallet.double_bet();
 
                         if wallet_result.is_err() {
                             if let Some(_) = wallet_result.unwrap_err().downcast_ref::<errors::NotEnoughMoneyError>() {
-                                dark_red_ln!( "You do not have enough money to double" );
+                                notifications.add( Notification::new( NotificationType::INFO, String::from( "You do not have enough money to double" ) ) );
 
                             }
                             else {

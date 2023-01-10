@@ -3,6 +3,7 @@ use crate::card::components::SumType;
 use crate::Deck;
 use crate::wallet::Wallet;
 use crate::utils::input::wants_to_insure;
+use crate::notifications::NotificationBuffer;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::io::{ self, Write };
@@ -113,7 +114,7 @@ pub fn shuffle_deck( deck: Rc<RefCell<Deck>> ) {
     deck_mut.shuffle();
 }
 
-pub fn insurance_round( hands: &mut Vec<Hand>, wallet: &mut Wallet ) -> bool {
+pub fn insurance_round( hands: &mut Vec<Hand>, wallet: &mut Wallet, notifications: &mut NotificationBuffer ) -> bool {
     // Step 1: Present option and collect insurances
     let mut i = 1;
     let mut input = String::new();

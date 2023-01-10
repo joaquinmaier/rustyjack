@@ -15,7 +15,7 @@ impl std::fmt::Display for NotComputedError
 
 #[derive(Debug, Clone)]
 pub struct InvalidOperationError {
-    reason: Option<&'static str>
+    pub reason: Option<&'static str>
 }
 
 impl InvalidOperationError {

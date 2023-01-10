@@ -89,29 +89,6 @@ impl Hand
             while !self.auto_lock {
                 self.hit_weak( Weak::clone( &deck ) );
             }
-
-            /*
-            match self.sum_value.clone().unwrap() {
-                components::SumType::SingleValue( n ) => {
-                    while n < 17 {
-                        self.hit_weak( Weak::clone( &deck ) );
-                    }
-                },
-                components::SumType::MultipleValue( n1, n2 ) => {
-                    while n2 < 17 {
-                        self.hit_weak( Weak::clone( &deck ) );
-
-                    }
-
-                    if n2 > 21 {
-                        while n1 < 17 {
-                            self.hit_weak( Weak::clone( &deck ) );
-
-                        }
-                    }
-                }
-            }
-            */
         }
     }
 
@@ -174,22 +151,13 @@ impl Hand
 
     fn hit_weak( &mut self, deck: Weak<RefCell<Deck>> ) {
         if self.is_valid().unwrap() && !self.locked {
-            println!("hit_weak() started");
             match deck.upgrade() {
                 Some( deck ) => {
-                    println!("std::rc::Weak upgraded");
-
                     let mut deck_mut = deck.borrow_mut();
-
-                    println!("hit_weak() got mutable access to Rc");
 
                     self.cards.push( deck_mut.take_card() );
 
-                    println!("card pushed");
-
                     self.calc_sum();
-
-                    println!("sum calculated");
                 },
                 None => { panic!( "Deck has been dropped while hitting the hand" ); }
             }
@@ -200,15 +168,9 @@ impl Hand
         if self.is_valid().unwrap() && !self.locked {
             let mut deck_mut = deck.borrow_mut();
 
-            println!("hit() got mutable access to Rc");
-
             self.cards.push( deck_mut.take_card() );
 
-            println!("card pushed");
-
             self.calc_sum();
-
-            println!("sum calculated");
         }
     }
 
@@ -216,12 +178,19 @@ impl Hand
         self.locked = true;
     }
 
+    pub fn can_split( &self ) -> bool {
+        if self.cards.len() > 2     { return false; }
+        if CardValue::to_int( &self.cards[0].value ) != CardValue::to_int( &self.cards[1].value )   { return false; }
+
+        true
+    }
+
     pub fn split( &mut self, deck: Weak<RefCell<Deck>> ) -> Result<Hand, Box<InvalidOperationError>> {
         // Cannot split with more than 2 cards
-        if self.cards.len() > 2     { return Err( Box::new( InvalidOperationError::new( Some( "Hand has more than 3 cards" ) ) ) ); }
+        if self.cards.len() > 2     { return Err( Box::new( InvalidOperationError::new( Some( "Cannot split with more than 2 cards" ) ) ) ); }
 
         // Cannot split if both cards are not of the same value
-        if CardValue::to_int( &self.cards[0].value ) != CardValue::to_int( &self.cards[1].value )     { return Err( Box::new( InvalidOperationError::new( Some( "Hand's cards are not of equal value" ) ) ) ); }
+        if CardValue::to_int( &self.cards[0].value ) != CardValue::to_int( &self.cards[1].value )     { return Err( Box::new( InvalidOperationError::new( Some( "Cannot split if cards are not of equal value" ) ) ) ); }
 
         let splitting_card = self.cards.pop().unwrap();
 
