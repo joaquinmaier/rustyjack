@@ -133,6 +133,8 @@ pub fn insurance_round( hands: &mut Vec<Hand>, wallet: &mut Wallet, notification
 
             wallet.print_info();
 
+            notifications.print_all();
+
             colour::green_ln!( "\nINSURE BET? (y/n)" );
 
             print!( "\nHand {}: ", i );
