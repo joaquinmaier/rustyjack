@@ -195,3 +195,4 @@ pub fn insurance_round( hands: &mut Vec<Hand>, wallet: &mut Wallet, notification
     // money immediately is done already) and keep going.
     true
 }
+

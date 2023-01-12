@@ -25,25 +25,23 @@ use crate::notifications::{ NotificationBuffer, Notification, NotificationType }
 const PLAYERS: u32 = 2;
 const BET: i32 = 10;
 
-// TODO: If both the croupier and the player have blackjack, the game panics, fix that.
-
 fn main() {
     // ? Step 1: Init
     // I hate this line right here
-    let _terminal_size           = TerminalResolution::new( termsize::get().unwrap().rows, termsize::get().unwrap().cols );
+    let terminal_size           = TerminalResolution::new( termsize::get().unwrap().rows, termsize::get().unwrap().cols );
 
     let deck                    = Rc::new( RefCell::new( Deck::new() ) );   // Deck of cards
     let mut input_buffer        = String::new();                            // For receiving input from the user (reusable)
     let mut hands: Vec<Hand>    = Vec::new();
 
-    let mut playing             = true;
+    let mut first_hand          = true;
     let mut player_wallet       = Wallet::new( BET * 2 );
 
     let mut notifications       = NotificationBuffer::new();
 
     // ? Step 2: Gameplay loop
     // Step 2.1: Initialize hands
-    while playing && player_wallet.can_pay( BET as f64 ) {
+    while player_wallet.can_pay( BET as f64 ) {
         player_wallet.bet( BET as f64 ).unwrap();
 
         shuffle_deck( Rc::clone( &deck ) );
@@ -84,6 +82,10 @@ fn main() {
 
                 notifications.print_all();
 
+                if first_hand {
+                    dark_grey_ln!( "\nHINT: Don't know how to play? Hit H + Intro to boot up the help menu" );
+                }
+
                 print!("\nHand {}: ", i);
                 // Make sure the characters are displayed
                 io::stdout().flush().unwrap();
@@ -93,7 +95,7 @@ fn main() {
                 io::stdin().read_line( &mut input_buffer ).unwrap();
 
                 match handle_input( &input_buffer ) {
-                    1   => { done = true; playing = false; },
+                    1   => { std::process::exit( 0 ); },
                     2   => {
                         // Stand (lock the hand) and move on to the next person.
                         hands[i].stand();
@@ -153,10 +155,16 @@ fn main() {
                         if !hands[i].is_valid().unwrap()    { done = true; }
 
                     },
+                    6   => {
+                        // Present help message
+                        ui::help_message( &terminal_size );
+                        first_hand = false;
+                    },
                     _   => ()
                 }
             }
 
+            first_hand = false;
             i += 1;
         }
 
@@ -203,8 +211,6 @@ fn main() {
 
     }
 
-    if playing {
-        red_ln!( "\nGAME OVER" );
-    }
-
+    red_ln!( "\nGAME OVER\n" );
 }
+

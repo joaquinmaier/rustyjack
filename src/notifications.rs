@@ -58,3 +58,4 @@ impl NotificationBuffer
         self.buffer.push_back( new_notification );
     }
 }
+
