@@ -44,29 +44,6 @@ pub fn print_separator_bw( dimensions: &TerminalResolution ) {
     print!( "\n\n" );
 }
 
-pub fn print_rainbow_msg( message: &str ) {
-    let mut counter: u8 = 0;
-    let chars: Vec<char> = message.chars().into_iter().collect();
-
-    for i in 0..chars.len() {
-        if counter > 5      { counter = 0; }
-
-        match counter {
-            0   =>  { red!( "{}", chars[i] ); },
-            1   =>  { yellow!( "{}", chars[i] ); },
-            2   =>  { green!( "{}", chars[i] ); },
-            3   =>  { cyan!( "{}", chars[i] ); },
-            4   =>  { blue!( "{}", chars[i] ); },
-            5   =>  { magenta!( "{}", chars[i] ); },
-            _   =>  { panic!( "Counter outside of valid range! "); }
-        }
-
-        counter += 1;
-    }
-
-    print!( "\n" );
-}
-
 pub fn help_message( resolution: &TerminalResolution ) {
     let mut input = String::new();
 

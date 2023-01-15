@@ -27,7 +27,6 @@ const BET: i32 = 10;
 
 fn main() {
     // ? Step 1: Init
-    // I hate this line right here
     let terminal_size           = TerminalResolution::new( termsize::get().unwrap().rows, termsize::get().unwrap().cols );
 
     let deck                    = Rc::new( RefCell::new( Deck::new() ) );   // Deck of cards
@@ -60,13 +59,12 @@ fn main() {
         }
 
         // Step 2.2: Receive player input and act accordingly
-        // Ranges don't update with a push() to the Vec, so we have to use while
-
         let mut can_play = true;
         if hands[0].should_present_insurance() {
             can_play = insurance_round( &mut hands, &mut player_wallet, &mut notifications );
         }
 
+        // Ranges don't update with a push() to the Vec, so we have to use while
         let mut i = 1;
         while i < hands.len() && can_play {
             let mut done = false;

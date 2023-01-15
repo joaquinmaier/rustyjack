@@ -67,7 +67,6 @@ impl Deck
         self.spades = [false; 13];
         self.diamonds = [false; 13];
 
-        // Any additional stuff
     }
 }
 
