@@ -24,8 +24,7 @@ use colour::*;
 use std::io::{ self, Write };
 use std::rc::Rc;
 use std::cell::RefCell;
-
-extern crate termsize;
+use terminal_size;
 
 pub mod card;
 pub mod deck;
@@ -49,7 +48,7 @@ const BET: i32 = 10;
 
 fn main() {
     // ? Step 1: Init
-    let terminal_size           = TerminalResolution::new( termsize::get().unwrap().rows, termsize::get().unwrap().cols );
+    let terminal_size           = TerminalResolution::new( terminal_size::terminal_size().unwrap().1.0, terminal_size::terminal_size().unwrap().0.0 );
 
     let deck                    = Rc::new( RefCell::new( Deck::new() ) );   // Deck of cards
     let mut input_buffer        = String::new();                            // For receiving input from the user (reusable)
