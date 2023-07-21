@@ -55,7 +55,7 @@ fn main() {
     let terminal_size           = TerminalResolution::new( terminal_size::terminal_size().unwrap().1.0, terminal_size::terminal_size().unwrap().0.0 );
 
     let deck                    = Rc::new( RefCell::new( Deck::new() ) );                   // Deck of cards
-    let mut level_handler       = LevelHandler::new( INITIAL_BET, LevelProgressionSystem::Exponential( BET_LEVEL_MULTIPLIER as i32 ) );
+    let mut level_handler       = LevelHandler::new( INITIAL_BET, LevelProgressionSystem::Linear( BET_LEVEL_MULTIPLIER ) );
     let mut input_buffer        = String::new();                                            // For receiving input from the user (reusable)
     let mut hands: Vec<Hand>    = Vec::new();
 
@@ -146,7 +146,7 @@ fn main() {
                         } else {
                             match hands[i].split( Rc::downgrade( &deck ) ) {
                                 Err( e )        => {
-                                    notifications.add( Notification::new( NotificationType::ERROR, String::from( e.reason.unwrap() ) ) );
+                                    notifications.add( Notification::new( NotificationType::ERROR, String::from( e.reason.unwrap_or( "[Unexplained error]" ) ) ) );
                                 },
                                 Ok( _ )         => { panic!( "hand.split() returned Ok() when Err() was expected" ); }
                             }
@@ -238,6 +238,7 @@ fn main() {
         // Step 4: Check if the player should pass to the next level and present a message if so.
         let mut upgraded = false;
         while player_wallet.can_pay( UPGRADE_SECURITY_MARGIN * level_handler.peek_next_level_bet() ) {
+            println!( "Checking upgrades" );
             if !upgraded {
                 upgraded = true;
             }
