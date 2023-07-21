@@ -30,6 +30,7 @@ pub fn handle_input( input: &String ) -> u8 {
         'S'         => 4,
         'd'         => 5,
         'H'         => 6,
+        'u'         => 7,
         _           => 0
     }
 }

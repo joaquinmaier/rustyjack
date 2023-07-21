@@ -101,3 +101,28 @@ pub fn help_message( resolution: &TerminalResolution ) {
     io::stdin().read_line( &mut input ).unwrap();
 }
 
+pub fn upgrade_message( resolution: &TerminalResolution, new_level: i32, new_bets: f64 ) {
+    let mut _input = String::new();
+
+    crate::clr!();
+
+    print_separator_bw( &resolution );
+
+    green_ln!( "\tTABLE UPGRADED" );
+
+    println!( "You have been upgraded to a better table!\n" );
+
+    print!( "You are now on " );
+    magenta_ln!( "table {}", new_level );
+
+    print!( "The bets will now start at " );
+    blue_ln!( "${}\n", new_bets );
+
+    print_separator_bw( &resolution );
+
+    println!( "Press INTRO to play..." );
+
+    io::stdout().flush().unwrap();
+    io::stdin().read_line( &mut _input ).unwrap();
+}
+
