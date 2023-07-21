@@ -108,7 +108,7 @@ pub fn upgrade_message( resolution: &TerminalResolution, new_level: i32, new_bet
 
     print_separator_bw( &resolution );
 
-    green_ln!( "\t\tTABLE UPGRADED" );
+    green_ln!( "\t\tTABLE UPGRADED\n" );
 
     println!( "You have been upgraded to a better table!\n" );
 

@@ -134,21 +134,27 @@ fn main() {
                     },
                     4   => {
                         // Split the hand
-                        if hands[i].can_split() && player_wallet.bet( level_handler.get_bet() as f64 ).is_ok() {
+                        println!( "can_split: {}", hands[i].can_split() );
+                        if hands[i].can_split() && player_wallet.can_pay( level_handler.get_bet() as f64 ) {
+                            match player_wallet.bet( level_handler.get_bet() as f64 ) {
+                                Err( e )    => { notifications.add( Notification::new( NotificationType::ERROR, String::from( e.to_string() ) ) ); },
+                                Ok( _ )     => ()
+                            }
+
                             match hands[i].split( Rc::downgrade( &deck ) ) {
                                 Ok( new_hand )  => {
                                     hands.push( new_hand );
 
                                 },
-                                Err(_)          => ()           // Errors cannot happen since we checked beforehand if the player could
+                                Err(_)          => { panic!( "Error raised when splitting the hand, despite checks." ); }
                             }
 
                         } else {
-                            match hands[i].split( Rc::downgrade( &deck ) ) {
-                                Err( e )        => {
-                                    notifications.add( Notification::new( NotificationType::ERROR, String::from( e.reason.unwrap_or( "[Unexplained error]" ) ) ) );
-                                },
-                                Ok( _ )         => { panic!( "hand.split() returned Ok() when Err() was expected" ); }
+                            if !player_wallet.can_pay( level_handler.get_bet() as f64 ) {
+                                notifications.add( Notification::new( NotificationType::ERROR, String::from( "You do not have enough money to split" ) ) );
+
+                            } else if hands[i].split( Rc::downgrade( &deck ) ).is_err() {
+                                notifications.add( Notification::new( NotificationType::ERROR, String::from( hands[i].split( Rc::downgrade( &deck ) ).err().unwrap().reason.unwrap() ) ) );
                             }
                         }
                     },
