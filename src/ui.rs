@@ -178,3 +178,9 @@ pub fn game_winner_message( resolution: &TerminalResolution ) {
 
     green_ln!( "YOU WIN!\n" );
 }
+
+pub fn startup_message() {
+    println!( "Connecting to the rustyjack servers..." );
+
+    sleep( Duration::from_secs( 1 ) );
+}

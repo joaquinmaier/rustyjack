@@ -65,6 +65,8 @@ fn main() {
     let mut notifications       = NotificationBuffer::new();
 
     // ? Step 2: Gameplay loop
+    ui::startup_message();
+
     while player_wallet.can_pay( level_handler.get_bet() as f64 ) {
         if player_wallet.has_won() {
             ui::game_winner_message( &terminal_size );
