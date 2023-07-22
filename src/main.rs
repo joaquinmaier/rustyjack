@@ -34,6 +34,7 @@ pub mod utils;
 pub mod ui;
 pub mod wallet;
 pub mod notifications;
+pub mod level_handler;
 
 use crate::deck::Deck;
 use crate::hand::Hand;
@@ -42,27 +43,36 @@ use crate::utils::game_logic::*;
 use crate::ui::TerminalResolution;
 use crate::wallet::Wallet;
 use crate::notifications::{ NotificationBuffer, Notification, NotificationType };
+use crate::level_handler::{ LevelHandler, LevelProgressionSystem };
 
 const PLAYERS: u32 = 2;
-const BET: i32 = 10;
+const INITIAL_BET: i32 = 10;
+const BET_LEVEL_MULTIPLIER: f64 = 2.0;
+const UPGRADE_SECURITY_MARGIN: f64 = 3.0;
 
 fn main() {
     // ? Step 1: Init
     let terminal_size           = TerminalResolution::new( terminal_size::terminal_size().unwrap().1.0, terminal_size::terminal_size().unwrap().0.0 );
 
-    let deck                    = Rc::new( RefCell::new( Deck::new() ) );   // Deck of cards
-    let mut input_buffer        = String::new();                            // For receiving input from the user (reusable)
+    let deck                    = Rc::new( RefCell::new( Deck::new() ) );                   // Deck of cards
+    let mut level_handler       = LevelHandler::new( INITIAL_BET, LevelProgressionSystem::Linear( BET_LEVEL_MULTIPLIER ) );
+    let mut input_buffer        = String::new();                                            // For receiving input from the user (reusable)
     let mut hands: Vec<Hand>    = Vec::new();
 
     let mut first_hand          = true;
-    let mut player_wallet       = Wallet::new( BET * 2 );
+    let mut player_wallet       = Wallet::new( level_handler.get_bet() as i32 * 2 );
 
     let mut notifications       = NotificationBuffer::new();
 
     // ? Step 2: Gameplay loop
-    // Step 2.1: Initialize hands
-    while player_wallet.can_pay( BET as f64 ) {
-        player_wallet.bet( BET as f64 ).unwrap();
+    ui::startup_message();
+
+    while player_wallet.can_pay( level_handler.get_bet() as f64 ) {
+        if player_wallet.has_won() {
+            ui::game_winner_message( &terminal_size );
+            std::process::exit( 0 );
+        }
+        player_wallet.bet( level_handler.get_bet() as f64 ).unwrap();
 
         shuffle_deck( Rc::clone( &deck ) );
         hands.clear();
@@ -99,6 +109,8 @@ fn main() {
 
                 player_wallet.print_info();
 
+                level_handler.print_info();
+
                 notifications.print_all();
 
                 if first_hand {
@@ -129,21 +141,27 @@ fn main() {
                     },
                     4   => {
                         // Split the hand
-                        if hands[i].can_split() && player_wallet.bet( BET as f64 ).is_ok() {
+                        println!( "can_split: {}", hands[i].can_split() );
+                        if hands[i].can_split() && player_wallet.can_pay( level_handler.get_bet() as f64 ) {
+                            match player_wallet.bet( level_handler.get_bet() as f64 ) {
+                                Err( e )    => { notifications.add( Notification::new( NotificationType::ERROR, String::from( e.to_string() ) ) ); },
+                                Ok( _ )     => ()
+                            }
+
                             match hands[i].split( Rc::downgrade( &deck ) ) {
                                 Ok( new_hand )  => {
                                     hands.push( new_hand );
 
                                 },
-                                Err(_)          => ()           // Errors cannot happen since we checked beforehand if the player could
+                                Err(_)          => { panic!( "Error raised when splitting the hand, despite checks." ); }
                             }
 
                         } else {
-                            match hands[i].split( Rc::downgrade( &deck ) ) {
-                                Err( e )        => {
-                                    notifications.add( Notification::new( NotificationType::ERROR, String::from( e.reason.unwrap() ) ) );
-                                },
-                                Ok( _ )         => { panic!( "hand.split() returned Ok() when Err() was expected" ); }
+                            if !player_wallet.can_pay( level_handler.get_bet() as f64 ) {
+                                notifications.add( Notification::new( NotificationType::ERROR, String::from( "You do not have enough money to split" ) ) );
+
+                            } else if hands[i].split( Rc::downgrade( &deck ) ).is_err() {
+                                notifications.add( Notification::new( NotificationType::ERROR, String::from( hands[i].split( Rc::downgrade( &deck ) ).err().unwrap().reason.unwrap() ) ) );
                             }
                         }
                     },
@@ -228,6 +246,19 @@ fn main() {
         io::stdout().flush().unwrap();
         io::stdin().read_line( &mut input_buffer ).unwrap();
 
+        // Step 4: Check if the player should pass to the next level and present a message if so.
+        let mut upgraded = false;
+        while player_wallet.can_pay( UPGRADE_SECURITY_MARGIN * level_handler.peek_next_level_bet() ) {
+            if !upgraded {
+                upgraded = true;
+            }
+
+            level_handler.increase_level();
+        }
+
+        if upgraded {
+            ui::upgrade_message( &terminal_size, level_handler.level, level_handler.get_bet() );
+        }
     }
 
     red_ln!( "\nGAME OVER\n" );
