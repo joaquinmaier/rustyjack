@@ -107,6 +107,8 @@ fn main() {
 
                 player_wallet.print_info();
 
+                level_handler.print_info();
+
                 notifications.print_all();
 
                 if first_hand {

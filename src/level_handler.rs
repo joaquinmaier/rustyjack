@@ -1,3 +1,5 @@
+use colour::*;
+
 pub struct LevelHandler {
     pub level: i32,
     previous_bet: Option<f64>,
@@ -50,6 +52,22 @@ impl LevelHandler
                 base.pow( ( start.unwrap() + ( level - 1 ) ) as u32 ) as f64
             }
         }
+    }
+
+    pub fn print_info( &self ) {
+        let level = self.level - 1;
+
+        if level == 0 {
+            return;
+        }
+
+        let mut stars = String::from( "[" );
+        for _ in 0..level {
+            stars.push_str( "*" );
+        }
+        stars.push_str( "]" );
+
+        magenta_ln!( "{}", stars );
     }
 }
 
