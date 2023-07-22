@@ -91,6 +91,8 @@ pub fn help_message( resolution: &TerminalResolution ) {
     println!( "5. All players must bet $10 (ten) for every round." );
     println!( "6. Players who cannot pay the above price will lose." );
 
+    dark_red!( "\nThe only way to go is UP." );
+
     dark_grey!( "\n\nFor an in-depth blackjack HOW-TO, you can visit:" );
     dark_blue!( " https://www.blackjackapprenticeship.com/how-to-play-blackjack/" );
     dark_grey_ln!( " (not sponsored)\n" );
@@ -132,7 +134,8 @@ pub enum PrintColorConfig {
     DEFAULT,
     GREEN,
     MAGENTA,
-    BLUE
+    BLUE,
+    RED
 }
 
 pub fn animated_print( message: String, rate_ms: u64, color: PrintColorConfig ) {
@@ -141,7 +144,8 @@ pub fn animated_print( message: String, rate_ms: u64, color: PrintColorConfig ) 
             PrintColorConfig::DEFAULT => { print!( "{}", character ); },
             PrintColorConfig::GREEN => { green!( "{}", character ); },
             PrintColorConfig::MAGENTA => { magenta!( "{}", character ); },
-            PrintColorConfig::BLUE => { blue!( "{}", character ); }
+            PrintColorConfig::BLUE => { blue!( "{}", character ); },
+            PrintColorConfig::RED => { red!( "{}", character ); }
         }
 
         io::stdout().flush().unwrap();
@@ -150,3 +154,27 @@ pub fn animated_print( message: String, rate_ms: u64, color: PrintColorConfig ) 
     }
 }
 
+pub fn game_winner_message( resolution: &TerminalResolution ) {
+    let mut _input = String::new();
+    crate::clr!();
+
+    print_separator_bw( &resolution );
+
+    animated_print( String::from( "\t\tYOUR ACCOUNT HAS BEEN SUSPENDED\n\n" ), 25, PrintColorConfig::RED );
+
+    animated_print( String::from( "Due to allegations related to your account breaking our Terms Of Service\nwe have decided to suspend your account for further review.\n\n" ), 12, PrintColorConfig::DEFAULT );
+    animated_print( String::from( "You will be unable to access your account, participate in games or access/retrieve your funds\nfor as long as your account remains in this state.\n\n" ), 12, PrintColorConfig::DEFAULT );
+
+    animated_print( String::from( "Please be patient while our team works on this issue.\n\n" ), 12, PrintColorConfig::DEFAULT );
+
+    animated_print( String::from( "- Rustyjack Team\n\n" ), 12, PrintColorConfig::DEFAULT );
+
+    print_separator_bw( &resolution );
+
+    println!( "Press INTRO to continue..." );
+
+    io::stdin().read_line( &mut _input ).unwrap();
+    io::stdout().flush().unwrap();
+
+    green_ln!( "YOU WIN!\n" );
+}

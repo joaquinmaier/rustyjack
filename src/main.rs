@@ -65,8 +65,11 @@ fn main() {
     let mut notifications       = NotificationBuffer::new();
 
     // ? Step 2: Gameplay loop
-    // Step 2.1: Initialize hands
     while player_wallet.can_pay( level_handler.get_bet() as f64 ) {
+        if player_wallet.has_won() {
+            ui::game_winner_message( &terminal_size );
+            std::process::exit( 0 );
+        }
         player_wallet.bet( level_handler.get_bet() as f64 ).unwrap();
 
         shuffle_deck( Rc::clone( &deck ) );

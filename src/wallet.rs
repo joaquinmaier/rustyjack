@@ -25,6 +25,8 @@ use std::error::Error;
 use std::collections::VecDeque;
 use crate::errors::{ NotEnoughMoneyError, NonExistentBetError, InvalidStateError };
 
+pub const PLAYER_OBJECTIVE: i32 = 100_000;
+
 pub struct Wallet {
     pub money: f64,
         bets: Option<VecDeque<f64>>
@@ -133,6 +135,10 @@ impl Wallet
 
     pub fn can_pay( &self, cost: f64 ) -> bool {
         return self.money >= cost;
+    }
+
+    pub fn has_won( &self ) -> bool {
+        return self.money >= PLAYER_OBJECTIVE as f64;
     }
 }
 
