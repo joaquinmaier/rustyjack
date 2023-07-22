@@ -239,12 +239,9 @@ fn main() {
         io::stdout().flush().unwrap();
         io::stdin().read_line( &mut input_buffer ).unwrap();
 
-        notifications.add( Notification::new( NotificationType::INFO, format!( "Next bets: {}, Must have: {}", level_handler.peek_next_level_bet(), UPGRADE_SECURITY_MARGIN * level_handler.peek_next_level_bet() ) ) );
-
         // Step 4: Check if the player should pass to the next level and present a message if so.
         let mut upgraded = false;
         while player_wallet.can_pay( UPGRADE_SECURITY_MARGIN * level_handler.peek_next_level_bet() ) {
-            println!( "Checking upgrades" );
             if !upgraded {
                 upgraded = true;
             }

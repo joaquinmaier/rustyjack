@@ -22,6 +22,8 @@ SOFTWARE.
 
 use colour::*;
 use std::io::{ self, Write };
+use std::thread::sleep;
+use std::time::Duration;
 
 #[macro_export]
 macro_rules! clr {
@@ -108,15 +110,15 @@ pub fn upgrade_message( resolution: &TerminalResolution, new_level: i32, new_bet
 
     print_separator_bw( &resolution );
 
-    green_ln!( "\t\tTABLE UPGRADED\n" );
+    animated_print( String::from("\t\tTABLE UPGRADED\n\n"), 25, PrintColorConfig::GREEN );
 
-    println!( "You have been upgraded to a better table!\n" );
+    animated_print( String::from("You have been upgraded to a better table!\n\n"), 12, PrintColorConfig::DEFAULT );
 
-    print!( "You are now on " );
-    magenta_ln!( "table {}", new_level );
+    animated_print( String::from("You are now on "), 12, PrintColorConfig::DEFAULT );
+    animated_print( format!( "table {}\n", new_level ), 12, PrintColorConfig::MAGENTA );
 
-    print!( "The bets will now start at " );
-    blue_ln!( "${}\n", new_bets );
+    animated_print( String::from("The bets will now start at "), 12, PrintColorConfig::DEFAULT );
+    animated_print( format!( "${}\n\n", new_bets ), 12, PrintColorConfig::BLUE );
 
     print_separator_bw( &resolution );
 
@@ -124,5 +126,27 @@ pub fn upgrade_message( resolution: &TerminalResolution, new_level: i32, new_bet
 
     io::stdout().flush().unwrap();
     io::stdin().read_line( &mut _input ).unwrap();
+}
+
+pub enum PrintColorConfig {
+    DEFAULT,
+    GREEN,
+    MAGENTA,
+    BLUE
+}
+
+pub fn animated_print( message: String, rate_ms: u64, color: PrintColorConfig ) {
+    for character in message.chars() {
+        match &color {
+            PrintColorConfig::DEFAULT => { print!( "{}", character ); },
+            PrintColorConfig::GREEN => { green!( "{}", character ); },
+            PrintColorConfig::MAGENTA => { magenta!( "{}", character ); },
+            PrintColorConfig::BLUE => { blue!( "{}", character ); }
+        }
+
+        io::stdout().flush().unwrap();
+
+        sleep( Duration::from_millis( rate_ms ) );
+    }
 }
 
