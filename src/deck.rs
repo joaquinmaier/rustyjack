@@ -44,11 +44,11 @@ impl Deck
     }
 
     pub fn take_card( &mut self ) -> Card {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         loop {
-            let card_type = rng.gen_range( 0..4 );
-            let card_value = rng.gen_range( 0..13 );
+            let card_type = rng.random_range( 0..4 );
+            let card_value = rng.random_range( 0..13 );
 
             match card_type {
                 0 => {
