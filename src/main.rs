@@ -21,29 +21,29 @@ SOFTWARE.
 */
 
 use colour::*;
-use std::io::{ self, Write };
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::io::{self, Write};
+use std::rc::Rc;
 use terminal_size;
 
 pub mod card;
 pub mod deck;
-pub mod hand;
 pub mod errors;
-pub mod utils;
-pub mod ui;
-pub mod wallet;
-pub mod notifications;
+pub mod hand;
 pub mod level_handler;
+pub mod notifications;
+pub mod ui;
+pub mod utils;
+pub mod wallet;
 
 use crate::deck::Deck;
 use crate::hand::Hand;
-use crate::utils::input::*;
-use crate::utils::game_logic::*;
+use crate::level_handler::{LevelHandler, LevelProgressionSystem};
+use crate::notifications::{Notification, NotificationBuffer, NotificationType};
 use crate::ui::TerminalResolution;
+use crate::utils::game_logic::*;
+use crate::utils::input::*;
 use crate::wallet::Wallet;
-use crate::notifications::{ NotificationBuffer, Notification, NotificationType };
-use crate::level_handler::{ LevelHandler, LevelProgressionSystem };
 
 const PLAYERS: u32 = 2;
 const INITIAL_BET: i32 = 10;
@@ -52,38 +52,42 @@ const UPGRADE_SECURITY_MARGIN: f64 = 3.0;
 
 fn main() {
     // ? Step 1: Init
-    let terminal_size           = TerminalResolution::new( terminal_size::terminal_size().unwrap().1.0, terminal_size::terminal_size().unwrap().0.0 );
+    let terminal_size = TerminalResolution::new(
+        terminal_size::terminal_size().unwrap().1 .0,
+        terminal_size::terminal_size().unwrap().0 .0,
+    );
 
-    let deck                    = Rc::new( RefCell::new( Deck::new() ) );                   // Deck of cards
-    let mut level_handler       = LevelHandler::new( INITIAL_BET, LevelProgressionSystem::Linear( BET_LEVEL_MULTIPLIER ) );
-    let mut input_buffer        = String::new();                                            // For receiving input from the user (reusable)
-    let mut hands: Vec<Hand>    = Vec::new();
+    let deck = Rc::new(RefCell::new(Deck::new())); // Deck of cards
+    let mut level_handler = LevelHandler::new(
+        INITIAL_BET,
+        LevelProgressionSystem::Linear(BET_LEVEL_MULTIPLIER),
+    );
+    let mut input_buffer = String::new(); // For receiving input from the user (reusable)
+    let mut hands: Vec<Hand> = Vec::new();
 
-    let mut first_hand          = true;
-    let mut player_wallet       = Wallet::new( level_handler.get_bet() as i32 * 2 );
+    let mut first_hand = true;
+    let mut player_wallet = Wallet::new(level_handler.get_bet() as i32 * 2);
 
-    let mut notifications       = NotificationBuffer::new();
+    let mut notifications = NotificationBuffer::new();
 
     // ? Step 2: Gameplay loop
     ui::startup_message();
 
-    while player_wallet.can_pay( level_handler.get_bet() as f64 ) {
+    while player_wallet.can_pay(level_handler.get_bet() as f64) {
         if player_wallet.has_won() {
-            ui::game_winner_message( &terminal_size );
-            std::process::exit( 0 );
+            ui::game_winner_message(&terminal_size);
+            std::process::exit(0);
         }
-        player_wallet.bet( level_handler.get_bet() as f64 ).unwrap();
+        player_wallet.bet(level_handler.get_bet() as f64).unwrap();
 
-        shuffle_deck( Rc::clone( &deck ) );
+        shuffle_deck(Rc::clone(&deck));
         hands.clear();
 
         for i in 0..PLAYERS {
             if i == 0 {
-                hands.push( Hand::new( Rc::clone( &deck ), true ) );
-
+                hands.push(Hand::new(Rc::clone(&deck), true));
             } else {
-                hands.push( Hand::new( Rc::clone( &deck ), false ) );
-
+                hands.push(Hand::new(Rc::clone(&deck), false));
             }
 
             hands[i as usize].calc_sum();
@@ -92,7 +96,7 @@ fn main() {
         // Step 2.2: Receive player input and act accordingly
         let mut can_play = true;
         if hands[0].should_present_insurance() {
-            can_play = insurance_round( &mut hands, &mut player_wallet, &mut notifications );
+            can_play = insurance_round(&mut hands, &mut player_wallet, &mut notifications);
         }
 
         // Ranges don't update with a push() to the Vec, so we have to use while
@@ -104,7 +108,7 @@ fn main() {
                 clr!();
 
                 for j in 0..hands.len() {
-                    hands[ j ].print();
+                    hands[j].print();
                 }
 
                 player_wallet.print_info();
@@ -114,7 +118,9 @@ fn main() {
                 notifications.print_all();
 
                 if first_hand {
-                    dark_grey_ln!( "\nHINT: Don't know how to play? Hit H + Intro to boot up the help menu" );
+                    dark_grey_ln!(
+                        "\nHINT: Don't know how to play? Hit H + Intro to boot up the help menu"
+                    );
                 }
 
                 print!("\nHand {}: ", i);
@@ -123,81 +129,109 @@ fn main() {
 
                 input_buffer.clear();
 
-                io::stdin().read_line( &mut input_buffer ).unwrap();
+                io::stdin().read_line(&mut input_buffer).unwrap();
 
-                match handle_input( &input_buffer ) {
-                    1   => { std::process::exit( 0 ); },
-                    2   => {
+                match handle_input(&input_buffer) {
+                    1 => {
+                        std::process::exit(0);
+                    }
+                    2 => {
                         // Stand (lock the hand) and move on to the next person.
                         hands[i].stand();
                         done = true;
-                    },
-                    3   => {
+                    }
+                    3 => {
                         // Hit the hand, and if it's gone overboard, move on to the next person
-                        hands[i].hit( Rc::clone( &deck ) );
+                        hands[i].hit(Rc::clone(&deck));
 
-                        if !hands[i].is_valid().unwrap()    { done = true; }
-
-                    },
-                    4   => {
+                        if !hands[i].is_valid().unwrap() {
+                            done = true;
+                        }
+                    }
+                    4 => {
                         // Split the hand
-                        println!( "can_split: {}", hands[i].can_split() );
-                        if hands[i].can_split() && player_wallet.can_pay( level_handler.get_bet() as f64 ) {
-                            match player_wallet.bet( level_handler.get_bet() as f64 ) {
-                                Err( e )    => { notifications.add( Notification::new( NotificationType::ERROR, String::from( e.to_string() ) ) ); },
-                                Ok( _ )     => ()
+                        println!("can_split: {}", hands[i].can_split());
+                        if hands[i].can_split()
+                            && player_wallet.can_pay(level_handler.get_bet() as f64)
+                        {
+                            match player_wallet.bet(level_handler.get_bet() as f64) {
+                                Err(e) => {
+                                    notifications.add(Notification::new(
+                                        NotificationType::ERROR,
+                                        String::from(e.to_string()),
+                                    ));
+                                }
+                                Ok(_) => (),
                             }
 
-                            match hands[i].split( Rc::downgrade( &deck ) ) {
-                                Ok( new_hand )  => {
-                                    hands.push( new_hand );
-
-                                },
-                                Err(_)          => { panic!( "Error raised when splitting the hand, despite checks." ); }
+                            match hands[i].split(Rc::downgrade(&deck)) {
+                                Ok(new_hand) => {
+                                    hands.push(new_hand);
+                                }
+                                Err(_) => {
+                                    panic!("Error raised when splitting the hand, despite checks.");
+                                }
                             }
-
                         } else {
-                            if !player_wallet.can_pay( level_handler.get_bet() as f64 ) {
-                                notifications.add( Notification::new( NotificationType::ERROR, String::from( "You do not have enough money to split" ) ) );
-
-                            } else if hands[i].split( Rc::downgrade( &deck ) ).is_err() {
-                                notifications.add( Notification::new( NotificationType::ERROR, String::from( hands[i].split( Rc::downgrade( &deck ) ).err().unwrap().reason.unwrap() ) ) );
+                            if !player_wallet.can_pay(level_handler.get_bet() as f64) {
+                                notifications.add(Notification::new(
+                                    NotificationType::ERROR,
+                                    String::from("You do not have enough money to split"),
+                                ));
+                            } else if hands[i].split(Rc::downgrade(&deck)).is_err() {
+                                notifications.add(Notification::new(
+                                    NotificationType::ERROR,
+                                    String::from(
+                                        hands[i]
+                                            .split(Rc::downgrade(&deck))
+                                            .err()
+                                            .unwrap()
+                                            .reason
+                                            .unwrap(),
+                                    ),
+                                ));
                             }
                         }
-                    },
-                    5   => {
+                    }
+                    5 => {
                         // Double the hand
                         if hands[i].cards.len() > 2 {
-                            notifications.add( Notification::new( NotificationType::INFO, String::from( "You cannot double after hitting" ) ) );
+                            notifications.add(Notification::new(
+                                NotificationType::INFO,
+                                String::from("You cannot double after hitting"),
+                            ));
                             continue;
                         }
 
                         let wallet_result = player_wallet.double_bet();
 
                         if wallet_result.is_err() {
-                            if let Some(_) = wallet_result.unwrap_err().downcast_ref::<errors::NotEnoughMoneyError>() {
-                                notifications.add( Notification::new( NotificationType::INFO, String::from( "You do not have enough money to double" ) ) );
-
-                            }
-                            else {
+                            if let Some(_) = wallet_result
+                                .unwrap_err()
+                                .downcast_ref::<errors::NotEnoughMoneyError>()
+                            {
+                                notifications.add(Notification::new(
+                                    NotificationType::INFO,
+                                    String::from("You do not have enough money to double"),
+                                ));
+                            } else {
                                 // Don't have to check, is the only other error that can appear
-                                panic!( "Attempted to double a non-existent bet" );
-
+                                panic!("Attempted to double a non-existent bet");
                             }
-                        }
-                        else {
-                            hands[i].double( Rc::downgrade( &deck ) ).unwrap();
+                        } else {
+                            hands[i].double(Rc::downgrade(&deck)).unwrap();
                         }
 
-                        if !hands[i].is_valid().unwrap()    { done = true; }
-
-                    },
-                    6   => {
+                        if !hands[i].is_valid().unwrap() {
+                            done = true;
+                        }
+                    }
+                    6 => {
                         // Present help message
-                        ui::help_message( &terminal_size );
+                        ui::help_message(&terminal_size);
                         first_hand = false;
-                    },
-                    _   => ()
+                    }
+                    _ => (),
                 }
             }
 
@@ -205,50 +239,50 @@ fn main() {
             i += 1;
         }
 
-        hands[0].reveal( Rc::downgrade( &deck ) );
+        hands[0].reveal(Rc::downgrade(&deck));
 
         // Step 3: Present croupier hand and show win/lose message
         clr!();
 
         for j in 0..hands.len() {
-            hands[ j as usize ].print();
+            hands[j as usize].print();
         }
 
-        let winners = determine_winners( &hands );
+        let winners = determine_winners(&hands);
 
         if winners.len() == 0 {
-            panic!( "No winners/losers were determined!" );
+            panic!("No winners/losers were determined!");
         }
 
         for winner in winners.iter() {
             match winner.result {
                 GameResultType::WIN => {
-                    green_ln!( "\nHand {} WINS", winner.player_id );
+                    green_ln!("\nHand {} WINS", winner.player_id);
                     player_wallet.give_win_reward().unwrap();
-                },
+                }
                 GameResultType::WINBJ => {
-                    yellow_ln!( "\nHand {} WINS WITH BLACKJACK", winner.player_id );
+                    yellow_ln!("\nHand {} WINS WITH BLACKJACK", winner.player_id);
                     player_wallet.give_win_reward_bj().unwrap();
-                },
+                }
                 GameResultType::PUSH => {
-                    cyan_ln!( "\nHand {} PUSH", winner.player_id );
+                    cyan_ln!("\nHand {} PUSH", winner.player_id);
                     player_wallet.push_bet().unwrap();
-                },
+                }
                 GameResultType::LOSE => {
-                    red_ln!( "\nHand {} LOSES", winner.player_id );
+                    red_ln!("\nHand {} LOSES", winner.player_id);
                     player_wallet.take_bet().unwrap();
                 }
             }
         }
 
-        green_ln!( "\n$$ Total Money: {} $$", player_wallet.money );
+        green_ln!("\n$$ Total Money: {} $$", player_wallet.money);
         println!("\nPress ENTER to continue...");
         io::stdout().flush().unwrap();
-        io::stdin().read_line( &mut input_buffer ).unwrap();
+        io::stdin().read_line(&mut input_buffer).unwrap();
 
         // Step 4: Check if the player should pass to the next level and present a message if so.
         let mut upgraded = false;
-        while player_wallet.can_pay( UPGRADE_SECURITY_MARGIN * level_handler.peek_next_level_bet() ) {
+        while player_wallet.can_pay(UPGRADE_SECURITY_MARGIN * level_handler.peek_next_level_bet()) {
             if !upgraded {
                 upgraded = true;
             }
@@ -257,10 +291,9 @@ fn main() {
         }
 
         if upgraded {
-            ui::upgrade_message( &terminal_size, level_handler.level, level_handler.get_bet() );
+            ui::upgrade_message(&terminal_size, level_handler.level, level_handler.get_bet());
         }
     }
 
-    red_ln!( "\nGAME OVER\n" );
+    red_ln!("\nGAME OVER\n");
 }
-
